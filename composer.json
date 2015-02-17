@@ -1,5 +1,5 @@
 {
-    "name":         "saeven/zf2-circlical-trans",
+    "name":         "saeven/zf2-circlical-trans-textDomain",
     "description":  "ZF2 module that glues Twig's {% trans %} and the standard translator together",
     "type":         "library",
     "license":      "MIT",
