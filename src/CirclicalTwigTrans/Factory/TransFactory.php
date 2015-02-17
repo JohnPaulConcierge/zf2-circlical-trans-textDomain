@@ -11,7 +11,7 @@ class TransFactory implements FactoryInterface
     {
         return new Trans(
             $serviceLocator->get('ZfcTwigRenderer'),
-            $serviceLocator->get('MvcTranslator' )
+            $serviceLocator->get('Translator' )
         );
     }
 }
