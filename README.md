@@ -1,4 +1,4 @@
-# zf2-circlical-trans
+# zf2-circlical-trans-textDomain
 
 Magic glue to connect ZfcTwig, the ZF2 Translator, and Twig's {% trans %}.  Usage is very simple; with this package included, modify your app config to add the "trans" extension this codebase provides.
 
