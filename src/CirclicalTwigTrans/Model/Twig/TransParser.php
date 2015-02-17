@@ -2,13 +2,16 @@
 
 namespace CirclicalTwigTrans\Model\Twig;
 
-use Zend\I18n\Translator\TranslatorInterface;
+use \Zend\I18n\View\Helper\Translate;
 
 class TransParser extends \Twig_Extensions_TokenParser_Trans
 {
-    protected $translator;
+    private $translator;
 
-    public function __construct( TranslatorInterface $translator )
+    /**
+     * @param Translate $translator
+     */
+    public function __construct(Translate $translator)
     {
         $this->translator = $translator;
     }
@@ -16,9 +19,9 @@ class TransParser extends \Twig_Extensions_TokenParser_Trans
     /**
      * Parses a token and returns a node.
      *
-     * @param \Twig_Token $token A Twig_Token instance
+     * @param \Twig_Token $token
      *
-     * @return Twig_NodeInterface A Twig_NodeInterface instance
+     * @return TransNode|\Twig_NodeInterface
      */
     public function parse(\Twig_Token $token)
     {
