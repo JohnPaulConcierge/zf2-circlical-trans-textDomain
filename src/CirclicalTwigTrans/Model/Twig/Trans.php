@@ -1,7 +1,9 @@
 <?php
 namespace CirclicalTwigTrans\Model\Twig;
 
-use Zend\I18n\Translator\TranslatorInterface;
+use \Zend\I18n\View\Helper\Translate;
+use \ZfcTwig\Twig\Extension as TwigExtension;
+use \ZfcTwig\View\TwigRenderer;
 
 class Trans extends \ZfcTwig\Twig\Extension
 {
@@ -14,11 +16,10 @@ class Trans extends \ZfcTwig\Twig\Extension
     protected $translator;
 
     /**
-     * Constructor.
-     *
-     * @param Translator $trans
+     * @param TwigRenderer $renderer
+     * @param Translate    $trans
      */
-    public function __construct( \ZfcTwig\View\TwigRenderer $renderer, TranslatorInterface $trans)
+    public function __construct(TwigRenderer $renderer, Translate $trans)
     {
         $this->renderer     = $renderer;
         $this->translator   = $trans;
@@ -32,7 +33,7 @@ class Trans extends \ZfcTwig\Twig\Extension
      */
     public function getTokenParsers()
     {
-        return array( new TransParser( $this->translator ) );
+        return array(new TransParser($this->translator));
     }
 
 
