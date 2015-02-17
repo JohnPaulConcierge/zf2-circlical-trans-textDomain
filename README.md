@@ -27,9 +27,7 @@ In your module's application.config.php, make sure you've got these modules load
     'ZfcTwig',
     'CirclicalTwigTrans'
 
-By loading CirclicalTwigTrans, you will be setting an alias from 'translator' to 'MvcTranslator'.  If you have an existing translator alias in your system, please remove it.
-
-It's assumed that you are managing locale in your app's bootstrap.  For example, in your Application module's onBootstrap:
+It's assumed that you are managing locale and textDomain in your app's bootstrap.  For example, in your Application module's onBootstrap:
 
 ```php
 public function onBootstrap(MvcEvent $e)
@@ -39,6 +37,13 @@ public function onBootstrap(MvcEvent $e)
     $translator
         ->setLocale( 'fr_CA' )
         ->setFallbackLocale( 'en_US' );
+
+    //for the view in application       
+    $viewRenderer = $events->getApplication()->getServiceManager()->get('ViewRenderer');
+    $plugIn = $viewRenderer->plugin('translate');
+    $plugIn->setTranslator($translator, __NAMESPACE__);    
+    
+    //or $plugIn->setTranslatorTextDomain(__NAMESPACE__); in all other modules...just setting the textDomain
 }
 ```
 
@@ -63,7 +68,3 @@ You can also do pluralization with:
 ```
 
 You can test it with the ZF2 Skeleton, by translating "Home" to "fr_CA" which becomes "Acceuil" (good test).
-
-#### Known Limitations
-
-Doesn't support text domains, yet.
