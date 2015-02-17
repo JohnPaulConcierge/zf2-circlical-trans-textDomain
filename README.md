@@ -27,12 +27,11 @@ In your module's application.config.php, make sure you've got these modules load
     'ZfcTwig',
     'CirclicalTwigTrans'
 
-It's assumed that you are managing locale and textDomain in your app's bootstrap.  For example, in your Application module's onBootstrap:
+It's assumed that you are managing locale and textDomain in your app's bootstrap.  In your Application module's ::onBootstrap() you are setting locale and the translator object for the view:
 
 ```php
 public function onBootstrap(MvcEvent $e)
 {
-
     $translator = $e->getApplication()->getServiceManager()->get('translator');
     $translator
         ->setLocale( 'fr_CA' )
@@ -42,8 +41,18 @@ public function onBootstrap(MvcEvent $e)
     $viewRenderer = $events->getApplication()->getServiceManager()->get('ViewRenderer');
     $plugIn = $viewRenderer->plugin('translate');
     $plugIn->setTranslator($translator, __NAMESPACE__);    
-    
-    //or $plugIn->setTranslatorTextDomain(__NAMESPACE__); in all other modules...just setting the textDomain
+}
+```
+
+In any other Module.php you just set the TextDomain for the view:
+
+```php
+
+public function onBootstrap(MvcEvent $e)
+{
+    $viewRenderer = $events->getApplication()->getServiceManager()->get('ViewRenderer');
+    $plugIn = $viewRenderer->plugin('translate');
+    $plugIn->setTranslatorTextDomain(__NAMESPACE__); 
 }
 ```
 
