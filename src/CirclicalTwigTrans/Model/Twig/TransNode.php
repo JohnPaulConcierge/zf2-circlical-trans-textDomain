@@ -1,21 +1,38 @@
 <?php
 namespace CirclicalTwigTrans\Model\Twig;
 
-use Zend\I18n\Translator\TranslatorInterface;
+use \Zend\I18n\View\Helper\Translate;
 
 class TransNode extends \Twig_Extensions_Node_Trans
 {
 
     /**
-     * @var Zend\I18n\Translator\TranslatorInterface
+     * @var \Zend\I18n\View\Helper\Translate
      */
-    protected $translator;
+    private $translator;
 
-    public function setTranslator( TranslatorInterface $t )
+    /**
+     * @param Translate $translate
+     *
+     * @return $this
+     */
+    public function setTranslator(Translate $translate)
     {
-        $this->translator = $t;
+        $this->translator = $translate;
+        return $this;
     }
 
+    /**
+     * @return \Zend\I18n\View\Helper\Translate
+     */
+    public function getTranslator()
+    {
+        return $this->translator;
+    }
+
+    /**
+     * @param \Twig_Compiler $compiler
+     */
     public function fcompile(\Twig_Compiler $compiler){
         die( "HERE" );
     }
@@ -45,8 +62,10 @@ class TransNode extends \Twig_Extensions_Node_Trans
 
             if( $is_plural )
             {
-                $t  = $this->translator->translate(
-                    $msg->nodes[0]->getAttribute('value')
+                $t  = $this->getTranslator()->getTranslator()->translate(
+                    $msg->nodes[0]->getAttribute('value'),
+                    $this->getTranslator()->getTranslatorTextDomain(),
+                    $this->getTranslator()->getTranslator()->getLocale()
                 );
 
                 if( is_array( $t ) )
@@ -70,7 +89,11 @@ class TransNode extends \Twig_Extensions_Node_Trans
             }
             else
             {
-                $compiler->repr( $this->translator->translate( $msg->nodes[0]->getAttribute('value') ) );
+                $compiler->repr($this->getTranslator()->getTranslator()->translate(
+                    $msg->nodes[0]->getAttribute('value'),
+                    $this->getTranslator()->getTranslatorTextDomain(),
+                    $this->getTranslator()->getTranslator()->getLocale()
+                ));
             }
             $compiler->raw('), array(');
 
@@ -98,7 +121,11 @@ class TransNode extends \Twig_Extensions_Node_Trans
 
             $srcnode = $is_plural ? $msgp : $msg;
             $compiler->write('echo ');
-            $compiler->repr( $this->translator->translate( $srcnode->getAttribute('value') ) );
+            $compiler->repr( $this->getTranslator()->getTranslator()->translate(
+                $srcnode->getAttribute('value'),
+                $this->getTranslator()->getTranslatorTextDomain(),
+                $this->getTranslator()->getTranslator()->getLocale()
+            ) );
             $compiler->write(';' );
 
         }
