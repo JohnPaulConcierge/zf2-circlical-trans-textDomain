@@ -1,11 +1,42 @@
 <?php
+
+/**
+,,
+`""*3b..											
+     ""*3o.
+         "33o.			                  			S. Alexandre M. Lemaire
+           "*33o.                                   alemaire@circlical.com
+              "333o.
+                "3333bo...       ..o:
+                  "33333333booocS333    ..    ,.
+               ".    "*3333SP     V3o..o33. .333b
+                "33o. .33333o. ...A33333333333333b
+          ""bo.   "*33333333333333333333P*33333333:
+             "33.    V333333333P"**""*"'   VP  * "l
+               "333o.433333333X
+                "*3333333333333AoA3o..oooooo..           .b
+                       .X33333333333P""     ""*oo,,     ,3P
+                      33P""V3333333:    .        ""*****"
+                    .*"    A33333333o.4;      .
+                         .oP""   "333333b.  .3;
+                                  A3333333333P
+                                  "  "33333P"
+                                      33P*"
+		                              .3"
+                                     "
+                                     
+                                     
+*/
+
 namespace CirclicalTwigTrans\Model\Twig;
 
-use \Zend\I18n\View\Helper\Translate;
-use \ZfcTwig\Twig\Extension as TwigExtension;
-use \ZfcTwig\View\TwigRenderer;
+use CirclicalTwigTrans\Model\Twig\Parser\TransParser;
+use Zend\Mvc\I18n\Translator;
+use ZfcTwig\Twig\Extension;
+use ZfcTwig\View\TwigRenderer;
+use Twig_Token;
 
-class Trans extends \ZfcTwig\Twig\Extension
+class Trans extends Extension
 {
 
     /**
@@ -13,16 +44,34 @@ class Trans extends \ZfcTwig\Twig\Extension
      */
     protected $renderer;
 
-    protected $translator;
 
     /**
-     * @param TwigRenderer $renderer
-     * @param Translate    $trans
+     * @var Translator
      */
-    public function __construct(TwigRenderer $renderer, Translate $trans)
+    protected $translator;
+
+
+    /**
+     * Constructor.
+     *
+     * @param TwigRenderer $renderer
+     */
+    public function __construct( TwigRenderer $renderer, Translator $translator = null )
     {
         $this->renderer     = $renderer;
-        $this->translator   = $trans;
+        $this->translator   = $translator;
+
+        /**
+         * Need some filter
+         */
+        $renderer->getEngine()->addFilter( new \Twig_SimpleFilter('trans', function ($string) use ($translator) {
+            return $translator->translate($string);
+        })); 
+    }
+
+    public function translate($value)
+    {
+        return $this->translator->translate($value);
     }
 
 
@@ -33,9 +82,27 @@ class Trans extends \ZfcTwig\Twig\Extension
      */
     public function getTokenParsers()
     {
-        return array(new TransParser($this->translator));
+        // best place to set locale I could find, because of how the module loader works
+        // translator is optional to facilitate extraction, use Factory to create in production
+        if( $this->translator )
+        {
+        	$locale = $this->translator->getLocale();
+        	putenv( 'LANG=' . $locale );
+        	setlocale( LC_ALL , $locale . ".utf-8" );
+        }
+        
+        return array( new TransParser( $this->translator ) );
     }
 
+    public function decideForFork(Twig_Token $token)
+    {
+        return $token->test(array('plural', 'from', 'notes', 'endtrans'));
+    }
+
+    public function decideForEnd(Twig_Token $token)
+    {
+        return $token->test('endtrans');
+    }
 
     /**
      * Returns the name of the extension.
@@ -44,7 +111,7 @@ class Trans extends \ZfcTwig\Twig\Extension
      */
     public function getName()
     {
-        return 'launchfire-translator';
+        return 'circlical-translator';
     }
 }
 

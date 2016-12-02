@@ -1,134 +1,241 @@
 <?php
+
+/**
+,,
+`""*3b..
+     ""*3o.
+         "33o.			                  			S. Alexandre M. Lemaire
+           "*33o.                                   alemaire@circlical.com
+              "333o.
+                "3333bo...       ..o:
+                  "33333333booocS333    ..    ,.
+               ".    "*3333SP     V3o..o33. .333b
+                "33o. .33333o. ...A33333333333333b
+          ""bo.   "*33333333333333333333P*33333333:
+             "33.    V333333333P"**""*"'   VP  * "l
+               "333o.433333333X
+                "*3333333333333AoA3o..oooooo..           .b
+                       .X33333333333P""     ""*oo,,     ,3P
+                      33P""V3333333:    .        ""*****"
+                    .*"    A33333333o.4;      .
+                         .oP""   "333333b.  .3;
+                                  A3333333333P
+                                  "  "33333P"
+                                      33P*"
+		                              .3"
+                                     "
+
+
+*/
+
 namespace CirclicalTwigTrans\Model\Twig;
 
-use \Zend\I18n\View\Helper\Translate;
+use CirclicalTwigTrans\Model\Twig\Parser\TransParser;
+use Twig_Node_Expression_Constant;
+use Twig_Node_Expression_Filter;
+use Twig_Node_Expression_Name;
+use Twig_Node_Expression_TempName;
+use Twig_Node_Print;
+use Twig_Node_SetTemp;
+use Twig_Compiler;
+use Twig_Node;
+use Twig_NodeInterface;
+use Twig_Node_Expression;
 
-class TransNode extends \Twig_Extensions_Node_Trans
+class TransNode extends Twig_Node
 {
+    const TYPE_PLURAL = 'plural';
+    const TYPE_COUNT  = 'count';
+    const TYPE_NAME   = 'name';
+    const TYPE_DATA   = 'data';
+
+    private $domain;
+
+    public function __construct(Twig_NodeInterface $body, $domain, Twig_NodeInterface $plural = null, Twig_Node_Expression $count = null, Twig_NodeInterface $notes = null, $line_number, $tag = null)
+    {
+        parent::__construct(
+            array(
+                'count'     => $count,
+                'body'      => $body,
+                'plural'    => $plural,
+                'notes'     => $notes,
+            ),
+            array(),
+            $line_number,
+            $tag
+        );
+
+        $this->domain = $domain;
+    }
 
     /**
-     * @var \Zend\I18n\View\Helper\Translate
-     */
-    private $translator;
-
-    /**
-     * @param Translate $translate
+     * Returns the token parser instances to add to the existing list.
      *
-     * @return $this
+     * @return array An array of Twig_TokenParserInterface or Twig_TokenParserBrokerInterface instances
      */
-    public function setTranslator(Translate $translate)
+    public function getTokenParsers()
     {
-        $this->translator = $translate;
-        return $this;
+        return array( new TransParser() );
     }
 
-    /**
-     * @return \Zend\I18n\View\Helper\Translate
-     */
-    public function getTranslator()
-    {
-        return $this->translator;
-    }
-
-    /**
-     * @param \Twig_Compiler $compiler
-     */
-    public function fcompile(\Twig_Compiler $compiler){
-        die( "HERE" );
-    }
 
     /**
      * Compiles the node to PHP.
      *
-     * @param \Twig_Compiler $compiler
+     * @param Twig_Compiler $compiler A Twig_Compiler instance
      */
-    public function compile(\Twig_Compiler $compiler)
+    public function compile(Twig_Compiler $compiler)
     {
         $compiler->addDebugInfo($this);
 
+        /**
+         * @var Twig_Node $msg
+         * @var TWig_Node $msg1
+         */
         list($msg, $vars) = $this->compileString($this->getNode('body'));
 
-        if (null !== $this->getNode('plural')) {
-            list($msgp, $vars1) = $this->compileString($this->getNode('plural'));
+        if (null !== $this->getNode(self::TYPE_PLURAL))
+        {
+            list($msg1, $vars1) = $this->compileString($this->getNode(self::TYPE_PLURAL));
             $vars = array_merge($vars, $vars1);
         }
 
-        $is_plural  = null === $this->getNode('plural') ? false : true;
-        $function   = null === $this->getNode('plural') ? 'gettext' : 'ngettext';
 
-        if ($vars) {
+        $is_plural  = null === $this->getNode(self::TYPE_PLURAL) ? false : true;
+        if( !$this->domain )
+            $function = $is_plural ? 'ngettext' : '$this->getEnvironment()->getExtension("circlical-translator")->translate';
+        else
+            $function = $is_plural ? 'dngettext' : '$this->getEnvironment()->getExtension("circlical-translator")->translate';
 
-            $compiler->raw('echo strtr(' . $function . '(' );
+        // handle notes
+        if (null !== $notes = $this->getNode('notes'))
+        {
+            $message = trim($notes->getAttribute(self::TYPE_DATA));
 
-            if( $is_plural )
+            // line breaks are not allowed cause we want a single line comment
+            $message = str_replace(array("\n", "\r"), " ", $message);
+            $compiler->write("// notes: {$message}\n");
+        }
+
+        if ($vars)
+        {
+            $compiler->write('echo strtr('.$function.'(');
+
+            if( $this->domain )
             {
-                $t  = $this->getTranslator()->getTranslator()->translate(
-                    $msg->nodes[0]->getAttribute('value'),
-                    $this->getTranslator()->getTranslatorTextDomain(),
-                    $this->getTranslator()->getTranslator()->getLocale()
-                );
+                $compiler->repr( $this->domain );
+                $compiler->raw( ', ' );
+            }
 
-                if( is_array( $t ) )
-                {
-                    $s = $t[0];
-                    $p = $t[1];
-                }
-                else
-                {
-                    $s = $t;
-                    $p = $msgp->nodes[0]->getAttribute('value');
-                }
+            $compiler->subcompile($msg);
 
+            if (null !== $this->getNode(self::TYPE_PLURAL))
+            {
                 $compiler
-                    ->repr( $s )
-                    ->raw(',' )
-                    ->repr( $p )
+                    ->raw(', ')
+                    ->subcompile($msg1)
                     ->raw(', abs(')
-                    ->subcompile($this->getNode('count'))
-                    ->raw(')');
+                    ->subcompile($this->getNode(self::TYPE_COUNT))
+                    ->raw(')')
+                ;
             }
-            else
-            {
-                $compiler->repr($this->getTranslator()->getTranslator()->translate(
-                    $msg->nodes[0]->getAttribute('value'),
-                    $this->getTranslator()->getTranslatorTextDomain(),
-                    $this->getTranslator()->getTranslator()->getLocale()
-                ));
-            }
+
             $compiler->raw('), array(');
 
             foreach ($vars as $var) {
-                if ('count' === $var->getAttribute('name')) {
+                if (self::TYPE_COUNT === $var->getAttribute(self::TYPE_NAME))
+                {
                     $compiler
                         ->string('%count%')
                         ->raw(' => abs(')
-                        ->subcompile($this->getNode('count'))
-                        ->raw(') ')
-                    ;
-                } else {
+                        ->subcompile($this->getNode(self::TYPE_COUNT))
+                        ->raw('), ');
+                }
+                else
+                {
                     $compiler
-                        ->string('%'.$var->getAttribute('name').'%')
+                        ->string('%'.$var->getAttribute(self::TYPE_NAME).'%')
                         ->raw(' => ')
                         ->subcompile($var)
-                        ->raw(', ')
-                    ;
+                        ->raw(', ');
                 }
             }
 
             $compiler->raw("));\n");
 
-        } else {
-
-            $srcnode = $is_plural ? $msgp : $msg;
-            $compiler->write('echo ');
-            $compiler->repr( $this->getTranslator()->getTranslator()->translate(
-                $srcnode->getAttribute('value'),
-                $this->getTranslator()->getTranslatorTextDomain(),
-                $this->getTranslator()->getTranslator()->getLocale()
-            ) );
-            $compiler->write(';' );
-
         }
+        else
+        {
+            $compiler->write('echo '.$function.'(');
+            if( $this->domain )
+            {
+                $compiler->repr( $this->domain );
+                $compiler->raw( ', ' );
+            }
+
+            $compiler->subcompile($msg);
+
+            if (null !== $this->getNode(self::TYPE_PLURAL))
+            {
+                $compiler
+                    ->raw(', ')
+                    ->subcompile($msg1)
+                    ->raw(', abs(')
+                    ->subcompile($this->getNode(self::TYPE_COUNT))
+                    ->raw(')');
+            }
+
+            $compiler->raw(");\n");
+        }
+        // echo $compiler->getSource();die('AHAHA');
+    }
+
+    /**
+     * @param Twig_NodeInterface $body A Twig_NodeInterface instance
+     *
+     * @return array
+     */
+    protected function compileString(Twig_NodeInterface $body)
+    {
+        if ($body instanceof Twig_Node_Expression_Name || $body instanceof Twig_Node_Expression_Constant || $body instanceof Twig_Node_Expression_TempName)
+        {
+            return array($body, array());
+        }
+
+        $vars = array();
+        if (count($body))
+        {
+            $msg = '';
+
+            foreach ($body as $node)
+            {
+                if (get_class($node) === 'Twig_Node' && $node->getNode(0) instanceof Twig_Node_SetTemp)
+                {
+                    $node = $node->getNode(1);
+                }
+
+                if ($node instanceof Twig_Node_Print)
+                {
+                    $n = $node->getNode('expr');
+                    while ($n instanceof Twig_Node_Expression_Filter)
+                    {
+                        $n = $n->getNode('node');
+                    }
+                    $msg .= sprintf('%%%s%%', $n->getAttribute(self::TYPE_NAME));
+                    $vars[] = new Twig_Node_Expression_Name($n->getAttribute(self::TYPE_NAME), $n->getLine());
+                }
+                else
+                {
+                    $msg .= $node->getAttribute(self::TYPE_DATA);
+                }
+            }
+        }
+        else
+        {
+            $msg = $body->getAttribute(self::TYPE_DATA);
+        }
+
+        return array(new Twig_Node(array(new Twig_Node_Expression_Constant(trim($msg), $body->getLine()))), $vars);
     }
 
 }

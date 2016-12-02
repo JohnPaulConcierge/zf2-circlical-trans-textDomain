@@ -3,19 +3,22 @@
 use CirclicalTwigTrans\Model\Twig\Trans;
 use CirclicalTwigTrans\Factory\TransFactory;
 
-return [
+return array(
 
-    'service_manager' => [
-        'factories' => [
-            Trans::class => TransFactory::class,
-        ],
-    ],
+    'service_manager' => array(
+        'aliases' => array(
+            'translator' => 'MvcTranslator',
+        ),
+        'factories' => array(
+            'CirclicalTwigTrans\Model\Twig\Trans' => 'CirclicalTwigTrans\Factory\TransFactory',
+        ),
+    ),
 
 
-    'zfctwig' => [
-        'extensions' => [
-            Trans::class,
-        ],
-    ],
-];
+    'zfctwig' => array(
+        'extensions' => array(
+            'CirclicalTwigTrans\Model\Twig\Trans',
+        ),
+    ),
+);
 
